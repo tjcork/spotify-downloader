@@ -69,6 +69,7 @@ def debug(song_id: str, result_id: str, message: str) -> None:
     """
 
     logger.log(MATCH, "[%s|%s] %s", song_id, result_id, message)
+    print("[%s|%s] %s" % (song_id, result_id, message))
 
 
 def fill_string(strings: List[str], main_string: str, string_to_check: str) -> str:
@@ -319,25 +320,30 @@ def calc_main_artist_match(song: Song, result: Result) -> float:
     slug_song_main_artist = slugify(song.artists[0])
     slug_result_main_artist = sorted_result_artists[0]
 
-    # Result has only one artist, but song has multiple artists
-    # we can assume that other artists are in the main artist name
-    if len(song.artists) > 1 and len(result.artists) == 1:
-        for artist in map(slugify, song.artists[1:]):
-            artist = sort_string(slugify(artist).split("-"), "-")
-
-            res_main_artist = sort_string(slug_result_main_artist.split("-"), "-")
-
-            if artist in res_main_artist:
-                main_artist_match += 100 / len(song.artists)
-
-        return main_artist_match
-
     # Match main result artist with main song artist
     main_artist_match = ratio(slug_song_main_artist, slug_result_main_artist)
 
     debug(
         song.song_id, result.result_id, f"First main artist match: {main_artist_match}"
     )
+
+    # Result has only one artist, but song has multiple artists
+    # we can assume that other artists are in the main artist name
+    # OR lazy inclusion of additional supporting artists
+
+    if len(song.artists) > 1 and len(result.artists) == 1:
+        for artist in map(slugify, song.artists[1:]):
+            debug(song.song_id, result.result_id, f"presorted song artist: {artist}")
+            artist = sort_string(slugify(artist).split("-"), "-")
+            debug(song.song_id, result.result_id, f"postsorted song artist: {artist}")
+            res_main_artist = sort_string(slug_result_main_artist.split("-"), "-")
+            debug(song.song_id, result.result_id, f"postsorted result artist: {res_main_artist}")
+            if artist in res_main_artist:
+                main_artist_match += 100 / len(song.artists)
+            debug(song.song_id, result.result_id, f"main artist match: {main_artist_match}")
+        return main_artist_match
+
+
 
     # Use second artist from the sorted list to
     # calculate the match if the first artist match is too low
@@ -662,7 +668,8 @@ def order_results(
             continue
 
         # Calculate match value for main artist
-        artists_match = calc_main_artist_match(song, result)
+        main_artists_match = calc_main_artist_match(song, result)
+        artists_match = main_artists_match
         debug(song.song_id, result.result_id, f"Main artist match: {artists_match}")
 
         # Calculate match value for all artists
@@ -741,7 +748,7 @@ def order_results(
             continue
 
         # Ignore results with artists match lower than 70%
-        if artists_match < 70 and result.source != "slider.kz":
+        if main_artists_match < 100 and artists_match < 70 and result.source != "slider.kz":
             debug(
                 song.song_id,
                 result.result_id,
