@@ -69,7 +69,6 @@ def debug(song_id: str, result_id: str, message: str) -> None:
     """
 
     logger.log(MATCH, "[%s|%s] %s", song_id, result_id, message)
-    print("[%s|%s] %s" % (song_id, result_id, message))
 
 
 def fill_string(strings: List[str], main_string: str, string_to_check: str) -> str:
@@ -333,16 +332,11 @@ def calc_main_artist_match(song: Song, result: Result) -> float:
 
     if len(song.artists) > 1 and len(result.artists) == 1:
         for artist in map(slugify, song.artists[1:]):
-            debug(song.song_id, result.result_id, f"presorted song artist: {artist}")
             artist = sort_string(slugify(artist).split("-"), "-")
-            debug(song.song_id, result.result_id, f"postsorted song artist: {artist}")
             res_main_artist = sort_string(slug_result_main_artist.split("-"), "-")
-            debug(song.song_id, result.result_id, f"postsorted result artist: {res_main_artist}")
             if artist in res_main_artist:
                 main_artist_match += 100 / len(song.artists)
-            debug(song.song_id, result.result_id, f"main artist match: {main_artist_match}")
         return main_artist_match
-
 
 
     # Use second artist from the sorted list to
